@@ -1,0 +1,6 @@
+python-binance
+pandas
+numpy
+ta
+schedule
+websocket-client
