@@ -1,9 +1,9 @@
 # config.py
 
-API_KEY = 'YOUR_BINANCE_API_KEY'
-API_SECRET = 'YOUR_BINANCE_API_SECRET'
+API_KEY = '1UuZ1YVKzHE50gfQNHI3oRC03brwTiXPP0qpsgqo2VfdgvNjfdMWiM0zHdPmlBAW'
+API_SECRET = 'EwYoUSUz5s3e3jyxXwB3xaYK1wwfuhKGLLXbNIAREfWTcscg32XvkZGxWIexp1Ts'
 
-PAPER_TRADING = False  # Set to False to enable live trading
+PAPER_TRADING = True  # Set to False to enable live trading
 
 # Trading parameters
 SYMBOL = 'BTCUSD'
