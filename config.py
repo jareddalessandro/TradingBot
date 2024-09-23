@@ -6,7 +6,7 @@ API_SECRET = ''
 PAPER_TRADING = True  # Set to False to enable live trading
 
 # Trading parameters
-SYMBOL = 'BTCUSD'
+SYMBOL = 'XBT/USD'  # Use Kraken's trading pair notation for Bitcoin/USD
 TRADE_QUANTITY_PERCENTAGE = 10  # Percentage of capital to use per trade
 RISK_PER_TRADE_PERCENTAGE = 1   # Percentage of capital to risk per trade
 REQUIRED_DATA_LENGTH = 500 # This is for indicator requirements, making sure we have enough data frames
@@ -15,9 +15,8 @@ REQUIRED_DATA_LENGTH = 500 # This is for indicator requirements, making sure we 
 RISK_REWARD_RATIO = 2  # Desired risk-reward ratio
 
 # Timeframes
-TIMEFRAME_SHORT = '1m'
-TIMEFRAME_LONG = '5m'
-TIMEFRAME_CONFIRM = '1h'
+TIMEFRAME_SHORT = '1'
+TIMEFRAME_LONG = '5'
 
 # Technical indicator settings
 EMA_SHORT_WINDOW = 9

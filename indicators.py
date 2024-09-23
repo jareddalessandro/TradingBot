@@ -9,17 +9,19 @@ import config
 
 client = utils.get_client()
 
-def get_historical_klines(symbol, interval, lookback):
-    """Fetch historical klines from Binance."""
-    klines = client.get_historical_klines(symbol, interval, lookback)
-    data = pd.DataFrame(klines, columns=[
-        'timestamp', 'open', 'high', 'low', 'close', 'volume',
-        'close_time', 'quote_av', 'trades', 'tb_base_av', 'tb_quote_av', 'ignore'
-    ])
-    data['timestamp'] = pd.to_datetime(data['timestamp'], unit='ms')
-    numeric_columns = ['open', 'high', 'low', 'close', 'volume']
-    data[numeric_columns] = data[numeric_columns].apply(pd.to_numeric, axis=1)
-    return data
+def get_historical_ohlc(pair, interval, since):
+    """Fetch historical OHLC data from Kraken."""
+    try:
+        ohlc_data = client.query_public('OHLC', {'pair': pair, 'interval': interval, 'since': since})
+        data = pd.DataFrame(ohlc_data['result'][pair], columns=[
+            'timestamp', 'open', 'high', 'low', 'close', 'volume'
+        ])
+        data['timestamp'] = pd.to_datetime(data['timestamp'], unit='s')
+        numeric_columns = ['open', 'high', 'low', 'close', 'volume']
+        data[numeric_columns] = data[numeric_columns].apply(pd.to_numeric)
+        return data
+    except Exception as e:
+        return None
 
 def apply_technical_indicators(data):
     """Calculate technical indicators and add them to the DataFrame."""
