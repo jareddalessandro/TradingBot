@@ -15,8 +15,8 @@ REQUIRED_DATA_LENGTH = 500 # This is for indicator requirements, making sure we 
 RISK_REWARD_RATIO = 2  # Desired risk-reward ratio
 
 # Timeframes
-TIMEFRAME_SHORT = '1'
-TIMEFRAME_LONG = '5'
+TIMEFRAME_SHORT = 1
+TIMEFRAME_LONG = 5
 
 # Technical indicator settings
 EMA_SHORT_WINDOW = 9
