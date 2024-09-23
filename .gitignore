@@ -37,7 +37,6 @@ var/
 *.egg-info/
 .installed.cfg
 *.egg
-*config.py
 # Installer logs
 *.log
 
@@ -72,3 +71,5 @@ config.py
 
 # VSCode settings
 .vscode/
+
+*config.py
