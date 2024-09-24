@@ -34,6 +34,8 @@ def generate_signals(data_1m, data_5m, data_1h):
     # MACD (Bearish to Bullish Crossover)
     macd = data_5m['macd'].iloc[-1]
     macd_signal = data_5m['macd_signal'].iloc[-1]
+    macd_bullish = macd > macd_signal
+    macd_bearish = macd < macd_signal
     macd_cross_bullish = macd > macd_signal and data_5m['macd'].iloc[-2] <= data_5m['macd_signal'].iloc[-2]
     macd_cross_bearish = macd < macd_signal and data_5m['macd'].iloc[-2] >= data_5m['macd_signal'].iloc[-2]
 
