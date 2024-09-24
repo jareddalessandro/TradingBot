@@ -3,7 +3,6 @@
 import krakenex
 import logging
 import websocket
-import json
 import time
 import threading
 import config
@@ -60,17 +59,8 @@ def get_websocket_manager():
 
 def on_message(ws, message):
     """Handle incoming WebSocket messages."""
-    try:
-        msg = json.loads(message)
-        # Check if the message contains data and log it
-        #if 'event' not in msg:
-        #    logging.info(f"Message received: {msg}")
-        #    # Additional logic to process the message can be added here
-        #else:
-        #    logging.info(f"Event message received: {msg}")
-    except Exception as e:
-        logging.error(f"Error processing message: {e}")
-        print(f"Error: {e}")
+    import trading_bot
+    trading_bot.handle_socket_message(message)  # Pass to message handler
 
 
 def on_error(ws, error):

@@ -1,59 +1,66 @@
-# strategy.py
+# strategy.py 
 
 import config
 import utils
 import math
+import logging
 
-def generate_signals(data_short, data_long, data_confirm):
+def generate_signals(data_1m, data_5m, data_1h):
     """Generate buy or sell signals based on technical indicators and support/resistance."""
     signal = None
-    last_price = data_short['close'].iloc[-1]
-    
-    # Trend Confirmation (higher timeframe)
-    is_uptrend = data_confirm['close'].iloc[-1] > data_confirm['ema_trend'].iloc[-1]
-    
-    # EMA Crossover (lower timeframe)
-    ema_crossover = data_long['ema_short'].iloc[-1] > data_long['ema_long'].iloc[-1] and \
-                    data_long['ema_short'].iloc[-2] <= data_long['ema_long'].iloc[-2]
-    
-    # RSI Signal
-    rsi_signal = data_long['rsi'].iloc[-1] > 30 and data_long['rsi'].iloc[-2] <= 30
-    
-    # MACD Signal
-    macd_signal = data_long['macd'].iloc[-1] > data_long['macd_signal'].iloc[-1] and \
-                  data_long['macd'].iloc[-2] <= data_long['macd_signal'].iloc[-2]
-    
-    # Volume Spike
-    volume_spike = data_long['volume'].iloc[-1] > data_long['volume_ma'].iloc[-1] * config.VOLUME_SPIKE_BUFFER  # 20% above average volume
-    
-    # Candlestick Pattern Placeholder (implement if desired)
-    candlestick_pattern = True  # Placeholder
+    last_price = data_1m['close'].iloc[-1]  # Using 1-minute data for last price
 
-    # --- NEW: Calculate Pivot Points and Swing High/Low Support/Resistance ---
-    pivot, resistance_1, support_1, resistance_2, support_2 = calculate_pivot_points(data_long)
-    dynamic_support, dynamic_resistance = calculate_swing_highs_lows(data_long)
+    # Support and Resistance from both 5-minute and 1-hour data
+    support_5m = data_5m['support'].iloc[-1]
+    resistance_5m = data_5m['resistance'].iloc[-1]
+    support_1h = data_1h['support'].iloc[-1]
+    resistance_1h = data_1h['resistance'].iloc[-1]
+
+    # EMA Crossover (9 over 21)
+    ema_9 = data_5m['ema_9'].iloc[-1]
+    ema_21 = data_5m['ema_21'].iloc[-1]
+    ema_120 = data_5m['ema_120'].iloc[-1]
+    ema_200 = data_5m['ema_200'].iloc[-1]
+    ema_crossover_9 = ema_9 > ema_21 and data_5m['ema_9'].iloc[-2] <= data_5m['ema_21'].iloc[-2]
+
+    # RSI Signal (Healthy RSI range: 40-70)
+    rsi = data_5m['rsi'].iloc[-1]
+    healthy_rsi = 40 <= rsi <= 60
+
+    # Volume Spike
+    volume_spike = data_5m['volume'].iloc[-1] > data_5m['volume_ma'].iloc[-1] * config.VOLUME_SPIKE_BUFFER
+
+    logging.info(f"Last Price: {last_price}\nSupport 5m: {support_5m}\nResistance 5m: {resistance_5m}")
+    logging.info(f"Support 1h: {support_1h}\nResistance 1h: {resistance_1h}\nEMA 9: {ema_9}\nEMA 21: {ema_21}\nRSI: {rsi}")
+
+    # Buy signal when price breaks resistance with strong volume
+    if last_price > resistance_5m and volume_spike:
+        signal = 'BUY'
+        logging.info("Buy signal: Price broke 5-minute resistance with strong volume.")
+    elif last_price > resistance_1h and volume_spike:
+        signal = 'BUY'
+        logging.info("Buy signal: Price broke 1-hour resistance with strong volume.")
     
-    # --- NEW: Support/Resistance Filtering ---
-    # Buy Signal when close to Support
-    if is_uptrend and ema_crossover and (rsi_signal or macd_signal) and volume_spike:
-        if last_price <= support_1 * (1 + config.S_R_BUFFER) or last_price <= dynamic_support * (1 + config.S_R_BUFFER):
-            signal = 'BUY'
+    # Buy signal when price bounces off support
+    elif last_price >= support_5m * (1 - config.S_R_BUFFER) and last_price <= support_5m * (1 + config.S_R_BUFFER):
+        signal = 'BUY'
+        logging.info("Buy signal: Price bounced off 5-minute support.")
+    elif last_price >= support_1h * (1 - config.S_R_BUFFER) and last_price <= support_1h * (1 + config.S_R_BUFFER):
+        signal = 'BUY'
+        logging.info("Buy signal: Price bounced off 1-hour support.")
     
-    # Sell Signal when close to Resistance
-    elif last_price >= resistance_1 * (1 - config.S_R_BUFFER) or last_price >= dynamic_resistance * (1 - config.S_R_BUFFER):
+    # EMA Crossover with a healthy RSI
+    elif ema_crossover_9 and healthy_rsi:
+        signal = 'BUY'
+        logging.info("Buy signal: EMA 9 crossed above EMA 21 with a healthy RSI.")
+    
+    # Sell signal when price breaks support
+    elif last_price < support_5m:
         signal = 'SELL'
-    else:
-        # Additional filtering for existing sell signals
-        ema_cross_down = data_long['ema_short'].iloc[-1] < data_long['ema_long'].iloc[-1] and \
-                         data_long['ema_short'].iloc[-2] >= data_long['ema_long'].iloc[-2]
-        rsi_overbought = data_long['rsi'].iloc[-1] < 70 and data_long['rsi'].iloc[-2] >= 73
-        macd_cross_down = data_long['macd'].iloc[-1] < data_long['macd_signal'].iloc[-1] and \
-                          data_long['macd'].iloc[-2] >= data_long['macd_signal'].iloc[-2]
-        
-        # If existing sell conditions are met and close to resistance
-        if ema_cross_down or rsi_overbought or macd_cross_down:
-            if last_price >= resistance_1 * (1 - config.S_R_BUFFER) or last_price >= dynamic_resistance * (1 - config.S_R_BUFFER):
-                signal = 'SELL'
+        logging.info("Sell signal: Price broke 5-minute support.")
+    elif last_price < support_1h:
+        signal = 'SELL'
+        logging.info("Sell signal: Price broke 1-hour support.")
     
     return signal, last_price
 
@@ -68,24 +75,13 @@ def calculate_take_profit(entry_price, stop_loss_price):
     take_profit_price = entry_price + (config.RISK_REWARD_RATIO * risk_per_unit)
     return take_profit_price
 
-def calculate_pivot_points(data):
-    """Calculate pivot points and S/R levels."""
-    pivot_point = (data['high'].iloc[-1] + data['low'].iloc[-1] + data['close'].iloc[-1]) / 3
-    
-    resistance_1 = (2 * pivot_point) - data['low'].iloc[-1]
-    support_1 = (2 * pivot_point) - data['high'].iloc[-1]
-    
-    # Optional: Add more levels (Resistance 2, Support 2)
-    resistance_2 = pivot_point + (data['high'].iloc[-1] - data['low'].iloc[-1])
-    support_2 = pivot_point - (data['high'].iloc[-1] - data['low'].iloc[-1])
-    
-    return pivot_point, resistance_1, support_1, resistance_2, support_2
-
-def calculate_swing_highs_lows(data, window=20):
-    """Identify recent swing highs and lows over a given window."""
-    recent_high = data['high'].rolling(window=window).max().iloc[-1]
-    recent_low = data['low'].rolling(window=window).min().iloc[-1]
-    return recent_low, recent_high
+def calculate_support_resistance(data, window):
+    """
+    Calculate dynamic support and resistance based on recent highs and lows.
+    """
+    data['support'] = data['low'].rolling(window=window, min_periods=1).min()
+    data['resistance'] = data['high'].rolling(window=window, min_periods=1).max()
+    return data
 
 def calculate_quantity(client, entry_price, stop_loss_price):
     """Calculate the quantity to buy based on risk per trade."""
