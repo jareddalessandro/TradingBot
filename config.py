@@ -23,13 +23,14 @@ TIMEFRAME_CONFIRM = 60
 # Technical indicator settings
 EMA_9_WINDOW = 9
 EMA_21_WINDOW = 21
+EMA_50_WINDOW = 50
 EMA_120_WINDOW = 120
 EMA_200_WINDOW = 200
 RSI_WINDOW = 14
 MACD_FAST = 12
 MACD_SLOW = 26
 MACD_SIGNAL = 9
-S_R_BUFFER = 0.01 # 1% buffer for S/R levels
+S_R_BUFFER = 0.0011 # 0.011% buffer for S/R levels
 VOLUME_SPIKE_BUFFER = 1.2 
 
 # ATR settings

@@ -13,6 +13,8 @@ def apply_technical_indicators(data):
         close=data['close'], window=config.EMA_9_WINDOW).ema_indicator()
     data['ema_21'] = EMAIndicator(
         close=data['close'], window=config.EMA_21_WINDOW).ema_indicator()
+    data['ema_50'] = EMAIndicator(
+        close=data['close'], window=config.EMA_50_WINDOW).ema_indicator()
     data['ema_120'] = EMAIndicator(
         close=data['close'], window=config.EMA_120_WINDOW).ema_indicator()
     data['ema_200'] = EMAIndicator(
