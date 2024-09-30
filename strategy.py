@@ -1,7 +1,8 @@
 import config
-import utils
 import math
 import logging
+
+# Algo version: 1.0
 
 def generate_signals(data_1m, data_5m, data_1h):
     """Generate buy or sell signals based on technical indicators and support/resistance."""
@@ -20,15 +21,15 @@ def generate_signals(data_1m, data_5m, data_1h):
     resistance_1h = data_1h['resistance'].iloc[-1]
 
     # EMAs from 5-minute data
-    ema_9 = data_5m['ema_9'].iloc[-1]
-    ema_21 = data_5m['ema_21'].iloc[-1]
-    ema_50 = data_5m['ema_50'].iloc[-1]
-    ema_120 = data_5m['ema_120'].iloc[-1]
-    ema_200 = data_5m['ema_200'].iloc[-1]
+    ema9 = data_5m['ema9'].iloc[-1]
+    ema21 = data_5m['ema21'].iloc[-1]
+    ema50 = data_5m['ema50'].iloc[-1]
+    #ema_120 = data_5m['ema120'].iloc[-1]
+    ema200 = data_5m['ema21'].iloc[-1]
 
     # Trend (must be defined before use)
-    uptrend = ema_9 > ema_21 > ema_50  # Stronger uptrend confirmation
-    downtrend = ema_9 < ema_21 < ema_50  # Stronger downtrend confirmation
+    uptrend = ema9 > ema21 > ema50  # Stronger uptrend confirmation
+    downtrend = ema9 < ema21 < ema50  # Stronger downtrend confirmation
 
     # Break and retest of resistance as support
     break_above_resistance = last_price > resistance_5m and data_1m['close'].iloc[-2] <= resistance_5m
@@ -39,10 +40,10 @@ def generate_signals(data_1m, data_5m, data_1h):
     retest_resistance = data_1m['high'].iloc[-1] >= support_5m and last_price < support_5m
 
     # Price bouncing off EMA 200 in an uptrend
-    bounce_off_ema200 = (data_5m['low'].iloc[-1] <= ema_200) and (last_price > ema_200) and uptrend
+    bounce_off_ema200 = (data_5m['low'].iloc[-1] <= ema200) and (last_price > ema200) and uptrend
 
     # Price rejecting at EMA 200 in a downtrend
-    reject_at_ema200 = (data_5m['high'].iloc[-1] >= ema_200) and (last_price < ema_200) and downtrend
+    reject_at_ema200 = (data_5m['high'].iloc[-1] >= ema200) and (last_price < ema200) and downtrend
 
     # RSI Signal (Healthy RSI range: 40-65)
     rsi = data_5m['rsi'].iloc[-1]
@@ -68,19 +69,19 @@ def generate_signals(data_1m, data_5m, data_1h):
     volume_spike = data_5m['volume'].iloc[-1] > data_5m['volume_ma'].iloc[-1] * config.VOLUME_SPIKE_BUFFER
 
     # Golden Cross
-    golden_cross = ema_50 > ema_200 and data_5m['ema_50'].iloc[-2] <= data_5m['ema_200'].iloc[-2]
+    golden_cross = ema50 > ema200 and data_5m['ema50'].iloc[-2] <= data_5m['ema200'].iloc[-2]
 
     # Death Cross
-    death_cross = ema_50 < ema_200 and data_5m['ema_50'].iloc[-2] >= data_5m['ema_200'].iloc[-2]
+    death_cross = ema50 < ema200 and data_5m['ema50'].iloc[-2] >= data_5m['ema200'].iloc[-2]
 
     # Trend on 1-hour timeframe
-    ema_50_1h = data_1h['ema_50'].iloc[-1]
-    ema_200_1h = data_1h['ema_200'].iloc[-1]
-    uptrend_1h = ema_50_1h > ema_200_1h
+    ema_50_1h = data_1h['ema50'].iloc[-1]
+    ema_200_1h = data_1h['ema200'].iloc[-1]
+    uptrend_1h = ema_50_1h >= ema_200_1h
     downtrend_1h = ema_50_1h < ema_200_1h
 
     logging.info(f"Last Price: {last_price}\nSupport 5m: {support_5m}\nResistance 5m: {resistance_5m}")
-    logging.info(f"Support 1h: {support_1h}\nResistance 1h: {resistance_1h}\nEMA 9: {ema_9}\nEMA 21: {ema_21}\nRSI: {rsi}")
+    logging.info(f"Support 1h: {support_1h}\nResistance 1h: {resistance_1h}\nEMA 9: {ema9}\nEMA 21: {ema21}\nRSI: {rsi}")
 
     ############ Bullish Flags
     if break_above_resistance and retest_support and uptrend:
@@ -161,7 +162,7 @@ def generate_signals(data_1m, data_5m, data_1h):
         logging.info("Sell signal: Price broke 1-hour support.")
 
     else:
-        logging.info("Hold: No action determined")
+        logging.info("HOLD: No action determined")
 
     return signal, last_price
 
@@ -205,9 +206,9 @@ def calculate_quantity(client, entry_price, stop_loss_price):
     
     quantity = risk_amount / risk_per_unit
     # Adjust quantity based on symbol precision
-    step_size, _ = utils.get_symbol_precision(client, config.SYMBOL)
-    precision = int(round(-math.log(step_size, 10), 0))
-    quantity = round(quantity, precision)
+    
+    #precision = int(round(-math.log(step_size, 10), 0))
+    quantity = round(quantity, 8)
     min_quantity = 0.001  # Define a minimum trade size based on exchange rules
     if quantity < min_quantity:
         return 0

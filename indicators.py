@@ -9,15 +9,13 @@ import config
 def apply_technical_indicators(data):
     """Calculate technical indicators and add them to the DataFrame."""
     # EMAs
-    data['ema_9'] = EMAIndicator(
+    data['ema9'] = EMAIndicator(
         close=data['close'], window=config.EMA_9_WINDOW).ema_indicator()
-    data['ema_21'] = EMAIndicator(
+    data['ema21'] = EMAIndicator(
         close=data['close'], window=config.EMA_21_WINDOW).ema_indicator()
-    data['ema_50'] = EMAIndicator(
+    data['ema50'] = EMAIndicator(
         close=data['close'], window=config.EMA_50_WINDOW).ema_indicator()
-    data['ema_120'] = EMAIndicator(
-        close=data['close'], window=config.EMA_120_WINDOW).ema_indicator()
-    data['ema_200'] = EMAIndicator(
+    data['ema200'] = EMAIndicator(
         close=data['close'], window=config.EMA_200_WINDOW).ema_indicator()
     
     # RSI
