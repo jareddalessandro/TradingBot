@@ -10,10 +10,7 @@ import logging
 import websocket
 import config
 
-
-## TODO:
-# 1. confirm that candle closed IS UNDERSTOOD and written correctly
-# 2. 
+## VERSION 0.9 - still need to test algo and actual trade APIs (non sandbox)
 
 # Configure logging
 logging.basicConfig(
@@ -149,8 +146,15 @@ def subscribe_to_ohlc():
         "subscription": {"name": "ohlc", "interval": config.TIMEFRAME_CONFIRM}
     }))
 
+# Initialize global variables to track last candle timestamps
+last_candle_timestamp_1m = None
+last_candle_timestamp_5m = None
+last_candle_timestamp_1h = None
+
 def handle_socket_message(message):
     global data_frame_1m, data_frame_5m, data_frame_1h
+    global last_candle_timestamp_1m, last_candle_timestamp_5m, last_candle_timestamp_1h
+    
     try:
         msg = json.loads(message)
 
@@ -158,12 +162,12 @@ def handle_socket_message(message):
             ohlc_data = msg[1]
             subscription = msg[2]
 
-            # Check if the candle is closed by comparing last update time to interval end time
-            is_candle_closed = ohlc_data[0] == ohlc_data[1]  # ohlc_data[0] is last update time, ohlc_data[1] is interval end time
+            # Extract the current candle timestamp
+            current_candle_timestamp = float(ohlc_data[1])  # This is the candle's end timestamp
 
-            # Create a new DataFrame row (for the latest OHLC data)
+            # Create a new row for the DataFrame
             new_row = pd.DataFrame([{
-                'timestamp': pd.to_datetime(float(ohlc_data[1]), unit='s'),  # Candle end time
+                'timestamp': pd.to_datetime(current_candle_timestamp, unit='s'),  # Candle end time
                 'open': float(ohlc_data[2]),  # Open price
                 'high': float(ohlc_data[3]),  # High price
                 'low': float(ohlc_data[4]),   # Low price
@@ -172,39 +176,39 @@ def handle_socket_message(message):
                 'volume': float(ohlc_data[7]),# Volume
                 'count': float(ohlc_data[8]), # Number of trades
             }])
-            print("OHCL [0]", pd.to_datetime(float(ohlc_data[0]), unit='s'))
+
             with data_lock:
-                if is_candle_closed:  # Append new row when the candle is closed
-                    print("Candle is closed...Concatenating")
-                    if 'ohlc-1' in subscription:
-                        print("Updating 1 min")
+                if 'ohlc-1' in subscription:
+                    if last_candle_timestamp_1m and current_candle_timestamp > last_candle_timestamp_1m:
+                        # Append the last completed candle before starting a new one
+                        print("Appending: A new complete 1 min candlestick.")
                         data_frame_1m = pd.concat([data_frame_1m, new_row])
                         data_frame_1m = data_frame_1m.tail(config.REQUIRED_DATA_LENGTH)
+                    else:
+                        # Update the current row if the candle is still open
+                        print("Updating: An existing 1 min candlestick")
+                        data_frame_1m.iloc[-1] = new_row.iloc[0]
+                    last_candle_timestamp_1m = current_candle_timestamp
 
-                    elif 'ohlc-5' in subscription:
-                        print("Updating 5 min")
+                elif 'ohlc-5' in subscription:
+                    if last_candle_timestamp_5m and current_candle_timestamp > last_candle_timestamp_5m:
+                        print("Appending: A new complete 5 min candlestick.")
                         data_frame_5m = pd.concat([data_frame_5m, new_row])
                         data_frame_5m = data_frame_5m.tail(config.REQUIRED_DATA_LENGTH)
+                    else:
+                        print("Updating: An existing 5 min candlestick")
+                        data_frame_5m.iloc[-1] = new_row.iloc[0]
+                    last_candle_timestamp_5m = current_candle_timestamp
 
-                    elif 'ohlc-60' in subscription:
-                        print("Updating 1 hour")
+                elif 'ohlc-60' in subscription:
+                    if last_candle_timestamp_1h and current_candle_timestamp > last_candle_timestamp_1h:
+                        print("Appending: A new complete 1 hour candlestick.")
                         data_frame_1h = pd.concat([data_frame_1h, new_row])
                         data_frame_1h = data_frame_1h.tail(config.REQUIRED_DATA_LENGTH)
-                else:
-                    print("Candle NOT closed...replacing last entry")
-                    # Overwrite the last row if the candle is still open (not yet closed)
-                    if 'ohlc-1' in subscription:
-                        print("Updating 1 min")
-                        print(new_row.iloc[0])
-                        data_frame_1m.iloc[-1] = new_row.iloc[0]
-                    elif 'ohlc-5' in subscription:
-                        print("Updating 5 min")
-                        print(new_row.iloc[0])
-                        data_frame_5m.iloc[-1] = new_row.iloc[0]  
-                    elif 'ohlc-60' in subscription:
-                        print("Updating 1 hr")
-                        print(new_row.iloc[0])
+                    else:
+                        print("Updating: An existing 1 hour candlestick")
                         data_frame_1h.iloc[-1] = new_row.iloc[0]
+                    last_candle_timestamp_1h = current_candle_timestamp
 
             # Run the bot after adding/updating data
             run_bot()
@@ -260,13 +264,11 @@ def run_bot():
             data_1m = indicators.apply_technical_indicators(data_1m)
             data_5m = indicators.apply_technical_indicators(data_5m)
             data_1h = indicators.apply_technical_indicators(data_1h)
-
+            signal, last_price = strategy.generate_signals(data_1m, data_5m, data_1h)
+            
             logging.info("1-minute data (last 5 rows):\n%s", data_1m.tail(10).to_string())
             logging.info("5-minute data (last 5 rows):\n%s", data_5m.tail(10).to_string())
             logging.info("1-hour data (last 5 rows):\n%s", data_1h.tail(10).to_string())
-            signal, last_price = strategy.generate_signals(data_1m, data_5m, data_1h)
-            
-        
 
             if position is None and signal == 'BUY':
                 atr_value = data_1m['atr'].iloc[-1]
