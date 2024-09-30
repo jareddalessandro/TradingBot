@@ -1,7 +1,7 @@
 # config.py
 
-API_KEY = 'RtV71+yx04HpsM45HWmd6HTW8qBu0LdtA4ICnTRUZb8AegOVR/2cgOSz'
-API_SECRET = 'UNqbf/ulr50iVOupdcAz5zu6Sedap3++W9EuOURtobqk7cfkeqP7cRds516WyzdBl7ILD2Gn+uL5F0WCnQCgeA=='
+API_KEY = ''
+API_SECRET = ''
 
 PAPER_TRADING = True  # Set to False to enable live trading
 
